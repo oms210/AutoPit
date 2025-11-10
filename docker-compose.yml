@@ -1,0 +1,38 @@
+version: "3.9"
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports: [ "5672:5672", "15672:15672" ]
+    environment: [ "RABBITMQ_DEFAULT_USER=guest", "RABBITMQ_DEFAULT_PASS=guest" ]
+
+  api:
+    build: ./src/AutoPit.Api
+    ports: [ "5190:5190" ]
+    environment:
+      - ConnectionStrings__Sqlite=Data Source=/data/autopit.db
+      - USE_RABBITMQ=true
+      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__UserName=guest
+      - RabbitMQ__Password=guest
+    depends_on: [ rabbitmq ]
+    volumes: [ "apidata:/data" ]
+
+  worker:
+    build: ./src/AutoPit.Worker
+    environment:
+      - ConnectionStrings__Sqlite=Data Source=/data/autopit.db
+      - USE_RABBITMQ=true
+      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__UserName=guest
+      - RabbitMQ__Password=guest
+    depends_on: [ rabbitmq ]
+    volumes: [ "apidata:/data" ]
+
+  web:
+    build: ./src/AutoPit.Web
+    ports: [ "5173:80" ]
+    depends_on: [ api ]
+
+volumes: { apidata: {} }
